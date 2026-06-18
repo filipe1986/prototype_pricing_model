@@ -146,7 +146,7 @@ def open_pricing_dashboard_ui():
     root.title("J.P. Morgan Storage Contract Valuation")
     root.geometry("450x300")
     
-    # Labels
+    # labels
     tk.Label(root, text="Monthly Storage Rate ($):").grid(row=0, column=0, padx=10, pady=10, sticky="w")
     tk.Label(root, text="Injection/Withdrawal Fee ($):").grid(row=1, column=0, padx=10, pady=10, sticky="w")
     tk.Label(root, text="Transit Fee Per Trip ($):").grid(row=2, column=0, padx=10, pady=10, sticky="w")
@@ -161,24 +161,24 @@ def open_pricing_dashboard_ui():
     entry_transit = tk.Entry(root)
     entry_transit.grid(row=2, column=1, padx=10, pady=10)
     
-    # when the button is clicked
+    # when the button is clicked...
     def on_click_calculate():
-        # Get the numbers from the input boxes and convert them to float numbers
+        
+        # get the numbers from the input boxes and convert them to float numbers
         s_rate = float(entry_storage.get())
         o_fee = float(entry_ops.get())
         t_fee = float(entry_transit.get())
         
-        # Run our core math engine with the test dates/volumes from your script
+        # runing our core math engine with the test dates/volumes from your script
         final_val = calculate_contract_value(test_inj, test_wth, test_vols, s_rate, o_fee, t_fee)
         
-        # Pop up a native desktop alert box with the answer!
+        # poping up a native desktop alert box with the answer!
         from tkinter import messagebox
         messagebox.showinfo("Contract Value", f"Estimated Fair Contract Value:\n${final_val:,.2f}")
 
     # defining the button layout and linking it to the action function
     btn_calc = tk.Button(root, text="Calculate Contract Valuation", command=on_click_calculate)
     btn_calc.grid(row=3, column=0, columnspan=2, pady=20)
-
 
     root.mainloop()
 
@@ -188,12 +188,12 @@ test_inj = ['2025-07-01']
 test_wth = ['2025-12-01']
 test_vols = [1000000]          # 1 Million MMBtu
 
-# Operational assumptions from the prompt
+# operational assumptions from the prompt
 storage_fee_monthly = 100000   # $100K fixed monthly rent
 ops_fee = 10000                # $10K injection/withdrawal charge
 transit_fee = 50000            # $50K transportation cost per trip
 
-# Run our pricing logic
+# runing the pricing logic
 calculated_price = calculate_contract_value(
     test_inj, test_wth, test_vols, 
     storage_fee_monthly, ops_fee, transit_fee
