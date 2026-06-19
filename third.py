@@ -49,93 +49,157 @@ def get_gas_price(date_str):
         # final price is trend + seasonal adjustment
         return trend_component + seasonal_component
 
-def calculate_contract_pricing(inj_date, wth_date, buy_price, sell_price, inj_rate, wth_rate, max_vol, storage_cost_monthly):
-    # 1. Parse dates and calculate total months stored
-    date_inj = pd.to_datetime(inj_date)
-    date_wth = pd.to_datetime(wth_date)
-    total_days = (date_wth - date_inj).days
-    months_stored = total_days / 30.0
+
+# contract pricing function struture
+def calculate_contract_value(injection_dates, withdrawal_dates, volumes, storage_rate_monthly, injection_withdrawal_fee, transport_fee):
     
-    # 2. Revenue and purchase cost calculations
-    gross_revenue = max_vol * sell_price
-    gross_purchase = max_vol * buy_price
-    
-    # 3. Time required for operations based on constraints (Item #4)
-    days_to_inject = max_vol / inj_rate
-    days_to_withdraw = max_vol / wth_rate
-    
-    # 4. Total rental fees over time (Item #6)
-    total_storage_fee = months_stored * storage_cost_monthly
-    
-    # 5. Final valuation statement
-    net_value = gross_revenue - gross_purchase - total_storage_fee
-    return net_value
+    total_value = 0
+
+    for inj_date, wth_date, vol in zip(injection_dates, withdrawal_dates, volumes):
+        buy_price = get_gas_price(inj_date)
+        sell_price = get_gas_price(wth_date)
+        
+        # calc time stored in months (using 30 days as a standard month)
+        months_stored = (pd.to_datetime(wth_date) - pd.to_datetime(inj_date)) / pd.Timedelta(days=30)
+        
+        # calc the net value for this pair (Revenue - Purchase - Storage - Fees)
+        trade_value = (vol * sell_price) - (vol * buy_price) - (months_stored * storage_rate_monthly) - injection_withdrawal_fee - (2 * transport_fee)
+        
+        # accumulate to the total contract value
+        total_value += trade_value
+
+    return total_value
 
 
-# --- Senior Math Validation Test ---
-test_val = calculate_contract_pricing(
-    inj_date="2025-06-01",
-    wth_date="2025-10-01",  # 4 months storage duration
-    buy_price=2.0,          # Summer buy price ($/MMBtu)
-    sell_price=3.0,         # Winter sell price ($/MMBtu)
-    inj_rate=50000,
-    wth_rate=50000,
-    max_vol=1000000,        # 1 Million MMBtu volume
-    storage_cost_monthly=100000  # $100k a month rent
-)
+# creating a hidden master window to host the dialog
 
-print("\n==============================================")
-print(f"🔬 CORE ARBITRAGE SIMULATION TEST RUN")
-print(f"🎯 Net Calculated Valuation: ${test_val:,.2f}")
-print("==============================================\n")
+def get_clean_date_ui():
+    # Inner helper function to capture and combine inputs
+    def submit():
+        nonlocal final_date
+        y, m, d = entry_y.get().strip(), entry_m.get().strip(), entry_d.get().strip()
+        
+        # Simple validation check to ensure entries aren't completely empty
+        if not (y and m and d):
+            messagebox.showerror("Error", "Please fill out all three fields!")
+            return
+            
+        # Combine inputs into the standard string format
+        formatted_str = f"{y}-{m.zfill(2)}-{d.zfill(2)}"
+        
+        try:
+            # Let pandas verify if it's a real calendar date (catches Feb 30th, etc.)
+            pd.to_datetime(formatted_str)
+            final_date = formatted_str
+            root.destroy()  # Close the window on success
+        except ValueError:
+            messagebox.showerror("Error", f"'{formatted_str}' is not a valid date! Try again.")
 
-
-def open_contract_dashboard():
-    # Initialize the master desktop window frame
+    final_date = None
     root = tk.Tk()
-    root.title("J.P. Morgan Gas Storage Valuation Desk")
-    root.geometry("520x400") 
+    root.title("Enter Target Forecast Date")
+    root.geometry("420x100") # Compact, clean layout
     
-    # Parameter Input Labels (Aligned down Column 0)
-    tk.Label(root, text="Injection Date (YYYY-MM-DD):").grid(row=0, column=0, padx=10, pady=8, sticky="w")
-    tk.Label(root, text="Withdrawal Date (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=8, sticky="w")
-    tk.Label(root, text="Purchase Price ($/MMBtu):").grid(row=2, column=0, padx=10, pady=8, sticky="w")
-    tk.Label(root, text="Selling Price ($/MMBtu):").grid(row=3, column=0, padx=10, pady=8, sticky="w")
-    tk.Label(root, text="Injection/Withdrawal Max Volume (MMBtu):").grid(row=4, column=0, padx=10, pady=8, sticky="w")
-    tk.Label(root, text="Monthly Storage Cost ($):").grid(row=5, column=0, padx=10, pady=8, sticky="w")
+    # Grid layout for inputs
+    tk.Label(root, text="Year (YYYY):").grid(row=0, column=0, padx=5, pady=5)
+    entry_y = tk.Entry(root, width=6)
+    entry_y.grid(row=0, column=1, padx=5, pady=5)
+    
+    tk.Label(root, text="Month (MM):").grid(row=0, column=2, padx=5, pady=5)
+    entry_m = tk.Entry(root, width=4)
+    entry_m.grid(row=0, column=3, padx=5, pady=5)
+    
+    tk.Label(root, text="Day (DD):").grid(row=0, column=4, padx=5, pady=5)
+    entry_d = tk.Entry(root, width=4)
+    entry_d.grid(row=0, column=5, padx=5, pady=5)
+    
+    # Submit button across the bottom
+    tk.Button(root, text="Generate Forecast", command=submit).grid(row=1, column=0, columnspan=6, pady=10)
+    
+    root.mainloop()
+    return final_date
 
-    # Text Entry Boxes (Aligned down Column 1)
-    entry_inj_date = tk.Entry(root)
-    entry_inj_date.grid(row=0, column=1, padx=10, pady=8)
-    
-    entry_wth_date = tk.Entry(root)
-    entry_wth_date.grid(row=1, column=1, padx=10, pady=8)
-    
-    entry_buy_price = tk.Entry(root)
-    entry_buy_price.grid(row=2, column=1, padx=10, pady=8)
-    
-    entry_sell_price = tk.Entry(root)
-    entry_sell_price.grid(row=3, column=1, padx=10, pady=8)
-    
-    entry_max_vol = tk.Entry(root)
-    entry_max_vol.grid(row=4, column=1, padx=10, pady=8)
-    
-    entry_storage_cost = tk.Entry(root)
-    entry_storage_cost.grid(row=5, column=1, padx=10, pady=8)
+# calling the function
+END = get_clean_date_ui()
 
-    # Flow Rate Constraint Fields (Rows 6 and 7)
-    tk.Label(root, text="Injection Rate (MMBtu/day):").grid(row=6, column=0, padx=10, pady=8, sticky="w")
-    entry_inj_rate = tk.Entry(root)
-    entry_inj_rate.grid(row=6, column=1, padx=10, pady=8)
-    
-    tk.Label(root, text="Withdrawal Rate (MMBtu/day):").grid(row=7, column=0, padx=10, pady=8, sticky="w")
-    entry_wth_rate = tk.Entry(root)
-    entry_wth_rate.grid(row=7, column=1, padx=10, pady=8)
 
-    # Keeping the window alive and responsive
+# creating a daily date range for the extrapolation year
+future_dates = pd.date_range(start='2024-10-01', end=END, freq='D')
+
+# using a list comprehension
+future_prices = [get_gas_price(str(d)) for d in future_dates]
+future_df = pd.DataFrame(data={'prices': future_prices}, index=future_dates)
+
+# plotig both dataframes together to see the final product
+plt.figure(figsize=(12, 6))
+plt.plot(daily_df.index, daily_df['prices'], label='Historical & Interpolated')
+plt.plot(future_df.index, future_df['prices'], label='Extrapolated Forecast', linestyle='--', color='red')
+plt.title('Natural Gas Price Estimation and Extrapolation')
+plt.xlabel('Dates')
+plt.ylabel('Prices')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+def open_pricing_dashboard_ui():
+    root = tk.Tk()
+    root.title("J.P. Morgan Storage Contract Valuation")
+    root.geometry("450x300")
+    
+    # labels
+    tk.Label(root, text="Monthly Storage Rate ($):").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+    tk.Label(root, text="Injection/Withdrawal Fee ($):").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    tk.Label(root, text="Transit Fee Per Trip ($):").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+    
+    # the Entry boxes 
+    entry_storage = tk.Entry(root)
+    entry_storage.grid(row=0, column=1, padx=10, pady=10)
+    
+    entry_ops = tk.Entry(root)
+    entry_ops.grid(row=1, column=1, padx=10, pady=10)
+    
+    entry_transit = tk.Entry(root)
+    entry_transit.grid(row=2, column=1, padx=10, pady=10)
+    
+    # when the button is clicked...
+    def on_click_calculate():
+        
+        # get the numbers from the input boxes and convert them to float numbers
+        s_rate = float(entry_storage.get())
+        o_fee = float(entry_ops.get())
+        t_fee = float(entry_transit.get())
+        
+        # runing our core math engine with the test dates/volumes from your script
+        final_val = calculate_contract_value(test_inj, test_wth, test_vols, s_rate, o_fee, t_fee)
+        
+        # poping up a native desktop alert box with the answer!
+        from tkinter import messagebox
+        messagebox.showinfo("Contract Value", f"Estimated Fair Contract Value:\n${final_val:,.2f}")
+
+    # defining the button layout and linking it to the action function
+    btn_calc = tk.Button(root, text="Calculate Contract Valuation", command=on_click_calculate)
+    btn_calc.grid(row=3, column=0, columnspan=2, pady=20)
+
     root.mainloop()
 
-# Call the function at the very bottom so it opens automatically when run!
-open_contract_dashboard()
 
+# --- Quick Math Validation Test ---
+test_inj = ['2025-07-01']
+test_wth = ['2025-12-01']
+test_vols = [1000000]          # 1 Million MMBtu
 
+# operational assumptions from the prompt
+storage_fee_monthly = 100000   # $100K fixed monthly rent
+ops_fee = 10000                # $10K injection/withdrawal charge
+transit_fee = 50000            # $50K transportation cost per trip
+
+# runing the pricing logic
+calculated_price = calculate_contract_value(
+    test_inj, test_wth, test_vols, 
+    storage_fee_monthly, ops_fee, transit_fee
+)
+
+#print(f"\n🎯 Estimated Fair Contract Value: ${calculated_price:,.2f}")
+
+# --- activating the UI ---
+open_pricing_dashboard_ui()
