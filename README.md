@@ -1,16 +1,25 @@
-# J.P. Morgan Quantitative Research – Commodity Storage Contract Pricing Engine 📊
+# J.P. Morgan - Natural Gas Storage Pricing Tool
 
-This repository contains my production-grade pricing engine built for the **J.P. Morgan Quantitative Research** track simulation on Forage (Task 2). The application evaluates natural gas storage contracts by calculating net asset cash flows against forecasted pricing baselines and operational overhead constraints.
+A desktop application to value natural gas storage contracts using historical data + seasonality forecasting.
 
-## 🧮 The Financial Valuation Model
-The engine determines fair contract valuation via a physical arbitrage framework:
-$$\text{Contract Value} = \text{Gross Sales Revenue} - \text{Gross Purchase Costs} - \text{Fixed Storage Costs} - \text{Operational/Transit Fees}$$
+## Overview
+This tool calculates the **net value** of gas storage contracts by comparing purchase and sale prices (with seasonality), storage costs, and operational constraints.
 
-## 🚀 Key Features
-- **Time-Series Pricing Feed:** Feeds dynamic, seasonally adjusted natural gas price estimates straight from our Task 1 linear regression forecasting model.
-- **Multi-Date Processing Logic:** Built a modular cash-flow calculation loop using Python's `zip` iterator to seamlessly process multiple matching injection/withdrawal transaction windows.
-- **Full-Stack Desktop GUI:** Developed an interactive desktop trading dashboard using Tkinter. It allows trading desks to input changing storage rates, transit fees, and processing charges to run quick real-time contract simulations.
+## Features
+- Interactive Tkinter GUI
+- Price forecasting with linear trend + monthly seasonality
+- Real-time contract valuation
+- Profitability warnings and break-even analysis
+- Supports different injection/withdrawal dates and volumes
 
-## 🛠️ Tech Stack
-- **Language:** Python 3
-- **Libraries:** Pandas, NumPy, SciPy, Matplotlib, Tkinter
+## How to Run
+1. Install dependencies:
+   ```bash
+   pip install pandas scipy matplotlib
+Make sure nat_gas.csv is in the project folder
+Run:bash
+
+python main.py
+
+Tech StackPython 3
+Pandas, SciPy, Tkinter
