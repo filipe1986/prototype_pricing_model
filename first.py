@@ -18,7 +18,7 @@ daily_df['days_since_start'] = (daily_df.index - daily_df.index.min()).days
 slope, intercept, r_value, p_value, std_err = linregress(daily_df['days_since_start'], daily_df['prices'])
 
 # calculating the baseline trend price for every historical day
-daily_df['trend_price'] = intercept + slope * daily_df['days_since_start']
+daily_df['trend_price'] = intercept + (slope * daily_df['days_since_start'])
 
 # finding the deviation 
 daily_df['deviation'] = daily_df['prices'] - daily_df['trend_price']
@@ -162,7 +162,7 @@ plt.show()
 def open_pricing_dashboard_ui():
     root = tk.Tk()
     root.title("J.P. Morgan Storage Contract Valuation")
-    root.geometry("450x300")
+    root.geometry("480x320")
     
     # labels
     tk.Label(root, text="Monthly Storage Rate ($):").grid(row=0, column=0, padx=10, pady=10, sticky="w")
@@ -179,6 +179,16 @@ def open_pricing_dashboard_ui():
     entry_transit = tk.Entry(root)
     entry_transit.grid(row=2, column=1, padx=10, pady=10)
     
+    # 3. New Physical Constraints Fields (Rows 3 and 4)
+    tk.Label(root, text="Max Storage Capacity (MMBtu):").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+    entry_capacity = tk.Entry(root)
+    entry_capacity.grid(row=3, column=1, padx=10, pady=10)
+    
+    tk.Label(root, text="Daily Flow Rate (MMBtu/day):").grid(row=4, column=0, padx=10, pady=10, sticky="w")
+    entry_flow = tk.Entry(root)
+    entry_flow.grid(row=4, column=1, padx=10, pady=10)
+
+
     # when the button is clicked...
     def on_click_calculate():
         
@@ -187,6 +197,11 @@ def open_pricing_dashboard_ui():
         o_fee = float(entry_ops.get())
         t_fee = float(entry_transit.get())
         
+        cap_limit = float(entry_capacity.get())
+        f_rate = float(entry_flow.get())
+
+        final_val = calculate_contract_value(test_inj, test_wth, test_vols, s_rate, o_fee, t_fee, cap_limit, f_rate)
+
         # runing our core math engine with the test dates/volumes from your script
         final_val = calculate_contract_value(test_inj, test_wth, test_vols, s_rate, o_fee, t_fee, max_facility_capacity, daily_flow_rate)
         
@@ -196,7 +211,7 @@ def open_pricing_dashboard_ui():
 
     # defining the button layout and linking it to the action function
     btn_calc = tk.Button(root, text="Calculate Contract Valuation", command=on_click_calculate)
-    btn_calc.grid(row=3, column=0, columnspan=2, pady=20)
+    btn_calc.grid(row=5, column=0, columnspan=2, pady=15, padx=10)
 
     root.mainloop()
 
