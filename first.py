@@ -51,24 +51,16 @@ def get_gas_price(date_str):
 
 
 # contract pricing function struture
-def calculate_contract_value(injection_dates, withdrawal_dates, volumes, storage_rate_monthly, injection_withdrawal_fee, transport_fee):
+def calculate_contract_value(injection_dates, withdrawal_dates, buy_price, sell_price, injection_rate, withdrawal_rate, max_volume, storage_rate_monthly):
     
+    # 1. Total Volume Ceiling Check (Constraint #5)
+    total_volume_requested = sum(volumes)
+    if total_volume_requested > max_capacity:
+        print("❌ Error: Requested volume exceeds maximum facility storage capacity!")
+        return 0  # Invalid contract
+        
     total_value = 0
 
-    for inj_date, wth_date, vol in zip(injection_dates, withdrawal_dates, volumes):
-        buy_price = get_gas_price(inj_date)
-        sell_price = get_gas_price(wth_date)
-        
-        # calc time stored in months (using 30 days as a standard month)
-        months_stored = (pd.to_datetime(wth_date) - pd.to_datetime(inj_date)) / pd.Timedelta(days=30)
-        
-        # calc the net value for this pair (Revenue - Purchase - Storage - Fees)
-        trade_value = (vol * sell_price) - (vol * buy_price) - (months_stored * storage_rate_monthly) - injection_withdrawal_fee - (2 * transport_fee)
-        
-        # accumulate to the total contract value
-        total_value += trade_value
-
-    return total_value
 
 
 # creating a hidden master window to host the dialog
