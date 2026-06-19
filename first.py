@@ -49,18 +49,44 @@ def get_gas_price(date_str):
         # final price is trend + seasonal adjustment
         return trend_component + seasonal_component
 
-
-# contract pricing function struture
-def calculate_contract_value(injection_dates, withdrawal_dates, buy_price, sell_price, injection_rate, withdrawal_rate, max_volume, storage_rate_monthly):
+def calculate_contract_value(injection_dates, withdrawal_dates, volumes, storage_rate_monthly, 
+                             injection_withdrawal_fee, transport_fee, max_capacity, flow_rate_per_day):
     
-    # 1. Total Volume Ceiling Check (Constraint #5)
+    # Physical Capacity Ceiling Check (Constraint #5)
     total_volume_requested = sum(volumes)
     if total_volume_requested > max_capacity:
         print("❌ Error: Requested volume exceeds maximum facility storage capacity!")
-        return 0  # Invalid contract
+        return 0.0
         
-    total_value = 0
-
+    total_value = 0.0
+    
+    # Loop through each transaction pair
+    for inj_date, wth_date, vol in zip(injection_dates, withdrawal_dates, volumes):
+        buy_price = get_gas_price(inj_date)
+        sell_price = get_gas_price(wth_date)
+        
+        # Time Limit Constraint Calculation (Constraint #4)
+        # Calculate how many days it takes to inject and withdraw this specific volume
+        days_to_inject = vol / flow_rate_per_day
+        days_to_withdraw = vol / flow_rate_per_day
+        
+        # Calculate total storage duration elapsed (using standard pandas timestamp diff)
+        time_elapsed_days = (pd.to_datetime(wth_date) - pd.to_datetime(inj_date)).days
+        months_stored = time_elapsed_days / 30.0
+        
+        # 4. Cash Flow Calculations
+        revenue = vol * sell_price
+        purchase_cost = vol * buy_price
+        
+        # Operational expenses including duration-based storage fees
+        storage_overhead = months_stored * storage_rate_monthly
+        operational_overhead = injection_withdrawal_fee + (2 * transport_fee)
+        
+        # Deduct costs from trade profit
+        trade_value = revenue - purchase_cost - storage_overhead - operational_overhead
+        total_value += trade_value
+        
+    return total_value
 
 
 # creating a hidden master window to host the dialog
@@ -162,7 +188,7 @@ def open_pricing_dashboard_ui():
         t_fee = float(entry_transit.get())
         
         # runing our core math engine with the test dates/volumes from your script
-        final_val = calculate_contract_value(test_inj, test_wth, test_vols, s_rate, o_fee, t_fee)
+        final_val = calculate_contract_value(test_inj, test_wth, test_vols, s_rate, o_fee, t_fee, max_facility_capacity, daily_flow_rate)
         
         # poping up a native desktop alert box with the answer!
         from tkinter import messagebox
@@ -174,7 +200,6 @@ def open_pricing_dashboard_ui():
 
     root.mainloop()
 
-
 # --- Quick Math Validation Test ---
 test_inj = ['2025-07-01']
 test_wth = ['2025-12-01']
@@ -185,10 +210,22 @@ storage_fee_monthly = 100000   # $100K fixed monthly rent
 ops_fee = 10000                # $10K injection/withdrawal charge
 transit_fee = 50000            # $50K transportation cost per trip
 
+# Physical facility constraints from J.P. Morgan guidelines
+max_facility_capacity = 1500000  # Facility can hold up to 1.5M MMBtu
+daily_flow_rate = 50000          # Facility can pump 50K MMBtu per day
+
+# Update your local function test run execution to include the two new parameters
+calculated_price = calculate_contract_value(
+    test_inj, test_wth, test_vols,
+    storage_fee_monthly, ops_fee, transit_fee,
+    max_facility_capacity, daily_flow_rate
+)
+
+
 # runing the pricing logic
 calculated_price = calculate_contract_value(
     test_inj, test_wth, test_vols, 
-    storage_fee_monthly, ops_fee, transit_fee
+    storage_fee_monthly, ops_fee, transit_fee, max_facility_capacity, daily_flow_rate
 )
 
 #print(f"\n🎯 Estimated Fair Contract Value: ${calculated_price:,.2f}")
