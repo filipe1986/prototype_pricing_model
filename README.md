@@ -26,3 +26,33 @@ python main.py
 
 Tech StackPython 3
 Pandas, SciPy, Tkinter
+
+# J.P. Morgan Natural Gas Storage Valuation Tool
+
+A web application to value natural gas storage contracts using historical data and seasonality forecasting.
+
+![Demo](https://github.com/filipe1986/prototype_pricing_model/blob/main/preview.png)
+
+## Features
+- Interactive price forecasting with trend + seasonality
+- Real-time contract valuation
+- Profitability analysis with color indicators
+- Built with Streamlit (easy to use in browser)
+
+## How to Run Locally
+
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+
+Live Demo
+Will be added after deployment on Render
+
+Tech Stack
+- Python 3
+- Streamlit
+- Pandas and Scipy
+- Plotly
+
+Deployed on Render
+This app is ready to be deployed on Render (free tier).
