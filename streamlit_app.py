@@ -17,7 +17,7 @@ st.markdown("**Prototype for Natural Gas Storage Contract Valuation**")
 # load and prepare data
 @st.cache_data
 def load_data():
-    df = pd.read_csv('nat_gas_csv')
+    df = pd.read_csv('nat_gas.csv')
     df.columns = df.columns.str.lower()
     df['dates'] = pd.to_datetime(df["dates"])
     df.set_index('dates', inplace=True)
@@ -36,18 +36,18 @@ def load_data():
 
 daily_df, slope, intercept, monthly_seasonality = load_data()
 
-def get_gas_price(data_str):
+def get_gas_price(date_str):
     target_date = pd.to_datetime(date_str)
     if target_date in daily_df.index:
         return daily_df.loc[target_date, 'prices']
     
-    days_sice = (target_date - daily_df.index.min()).days
+    days_since = (target_date - daily_df.index.min()).days
     trend = intercept + slope * days_since
     seasonal = monthly_seasonality.get(target_date.month, 0)
     return trend * seasonal
 
 # calc
-def calculate_contract(inj_date, wth_date, max_vol, storage_cost_montly):
+def calculate_contract(inj_date, wth_date, max_vol, storage_cost_monthly):
     buy_price = get_gas_price(inj_date)
     sell_price = get_gas_price(wth_date)
 
